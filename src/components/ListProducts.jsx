@@ -1,10 +1,7 @@
 import React, { useState } from "react";
-import {
-  useWeb3ModalProvider,
-  useWeb3ModalAccount,
-} from "@web3modal/ethers/react";
-import { BrowserProvider, Contract, ethers } from "ethers";
-import { createWeb3Modal, defaultConfig } from "@web3modal/ethers/react";
+import { useAccount } from 'wagmi';
+import { publicClient, walletClient } from '../config/wagmi';
+import commerceABI from '../contracts/Commerce.json';
 import { useNavigate } from "react-router-dom";
 
 const usdc_arbitrum = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
@@ -12,384 +9,12 @@ const usdc_base = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const usdc_linea = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff";
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
-const commerceABI = [
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_description",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_image",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_category",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_price",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_currency",
-        type: "address",
-      },
-    ],
-    name: "listProduct",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "image",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "string",
-        name: "category",
-        type: "string",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "currency",
-        type: "address",
-      },
-    ],
-    name: "ProductListed",
-    type: "event",
-  },
-  {
-    anonymous: false,
-    inputs: [
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "buyer",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        indexed: false,
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        indexed: false,
-        internalType: "address",
-        name: "currency",
-        type: "address",
-      },
-    ],
-    name: "ProductPurchased",
-    type: "event",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "purchaseProduct",
-    outputs: [],
-    stateMutability: "payable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "getProduct",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "category",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "currency",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "purchased",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getPurchasedProducts",
-    outputs: [
-      {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "productCount",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "products",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "address payable",
-        name: "seller",
-        type: "address",
-      },
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "image",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "category",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "currency",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "purchased",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "purchasedProducts",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-];
-
-// 1. Get projectId
-const projectId = "54c238d52f1218087ae00073282addb8";
-
-// 2. Set chains
-const mainnet = {
-  chainId: 1,
-  name: "Ethereum",
-  currency: "ETH",
-  explorerUrl: "https://etherscan.io",
-  rpcUrl: "https://cloudflare-eth.com",
-};
-const sepolia = {
-  chainId: 11155111,
-  name: "Sepolia",
-  currency: "ETH",
-  explorerUrl: "https://sepolia.etherscan.io",
-  rpcUrl:
-    "https://eth-sepolia.g.alchemy.com/v2/_O9yEvZei4_BPgQbLawL754cAfubB8jr", // Replace with your Infura project ID
-};
-
-const lineasepolia = {
-  chainId: 59141,
-  name: "LineaSepolia",
-  currency: "ETH",
-  explorerUrl: "https://sepolia.lineascan.build",
-  rpcUrl:
-    "https://linea-sepolia.g.alchemy.com/v2/_O9yEvZei4_BPgQbLawL754cAfubB8jr", // Replace with your Infura project ID
-};
-
-// 3. Create a metadata object
-const metadata = {
-  name: "My Website",
-  description: "My Website description",
-  url: "https://mywebsite.com", // origin must match your domain & subdomain
-  icons: ["https://avatars.mywebsite.com/"],
-};
-
-// 4. Create Ethers config
-const ethersConfig = defaultConfig({
-  /*Required*/
-  metadata,
-  auth: {
-    email: true, // default to true
-    socials: ["google", "x", "github"],
-    showWallets: true, // default to true
-    walletFeatures: true, // default to true
-  },
-  /*Optional*/
-  enableEIP6963: true, // true by default
-  enableInjected: true, // true by default
-  enableCoinbase: true, // true by default
-  rpcUrl: "...", // used for the Coinbase SDK
-  defaultChainId: 1, // used for the Coinbase SDK
-});
-
-// 5. Create a AppKit instance
-createWeb3Modal({
-  ethersConfig,
-  chains: [mainnet, sepolia, lineasepolia],
-  projectId,
-  enableAnalytics: true, // Optional - defaults to your Cloud configuration
-});
 
 const ListProducts = () => {
-
-  const { address, chainId, isConnected } = useWeb3ModalAccount();
-  const { walletProvider } = useWeb3ModalProvider();
+  const { address } = useAccount();
   const navigate = useNavigate();
 
+  // State to handle form inputs
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -398,59 +23,80 @@ const ListProducts = () => {
     currency: usdc_linea,
   });
 
+  // State to handle loading and error messages
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Function to handle input changes
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: value
     });
   };
 
+  // Function to handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!walletProvider) {
-      alert("User not connected");
+    setLoading(true);
+    setError('');
+    setSuccess('');
+
+    if (!address) {
+      setError('Please connect your wallet first');
+      setLoading(false);
       return;
     }
 
-    const ethersProvider = new BrowserProvider(walletProvider);
-    const signer = await ethersProvider.getSigner();
-    const commerceContract = new Contract(
-      commerceContractAddress,
-      commerceABI,
-      signer
-    );
-    console.log("hey");
     try {
-      // USDC has 6 decimals
-      const priceInWei = ethers.parseUnits(formData.price.toString(), 6);
+      // Prepare contract call arguments
+      const { name, description, category, price, currency } = formData;
+      
+      // Convert price to wei (USDC has 6 decimals)
+      const priceInWei = BigInt(parseFloat(price) * 1000000);
 
-      console.log(formData);
+      console.log('Listing product:', { name, description, category, price, currency, priceInWei });
 
-      const tx = await commerceContract.listProduct(
-        formData.name,
-        formData.description,
-        formData.category,
-        priceInWei,
-        formData.currency
-      );
+      // Simulate the contract call to list the product
+      const { request } = await publicClient.simulateContract({
+        address: commerceContractAddress,
+        abi: commerceABI,
+        functionName: 'listProduct',
+        args: [name, description, category, priceInWei, currency],
+        account: address
+      });
 
-      console.log(priceInWei);
+      // Write to the contract (list product on-chain)
+      const hash = await walletClient.writeContract(request);
+      await publicClient.waitForTransactionReceipt({ hash });
 
-      await tx.wait();
-      alert("Product listed successfully");
-      navigate("/marketplace");
-    } catch (error) {
-      console.log("Error listing product:", error);
+      setSuccess('Product listed successfully!');
+      
+      // Navigate to marketplace after successful listing
+      setTimeout(() => {
+        navigate("/marketplace");
+      }, 2000);
+      
+    } catch (err) {
+      console.error('Error listing product:', err);
+      setError('Failed to list the product. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black ">
+    <div className="min-h-screen flex items-center justify-center bg-black">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30 mt-[50px] mb-[50px]"
       >
-        <h2 className="text-3xl font-bold mb-8 text-white text-center ">List Your Product</h2>
+        <h2 className="text-3xl font-bold mb-8 text-white text-center">List Your Product</h2>
+        
+        {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
+        {success && <p className="text-green-500 mb-4 text-center">{success}</p>}
 
         <div className="mb-6">
           <label className="block text-white text-sm font-bold mb-2">
@@ -537,9 +183,12 @@ const ListProducts = () => {
         <div className="flex items-center justify-center">
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg focus:outline-none transition-colors duration-200 text-lg"
+            disabled={loading}
+            className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg focus:outline-none transition-colors duration-200 text-lg ${
+              loading ? 'opacity-50 cursor-not-allowed' : ''
+            }`}
           >
-            List Product
+            {loading ? 'Listing Product...' : 'List Product'}
           </button>
         </div>
       </form>
