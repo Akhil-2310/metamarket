@@ -144,68 +144,42 @@ const Marketplace = () => {
 
   // Fetch products from smart contract
   const fetchProducts = async () => {
+    if (!walletProvider) return;
+
+    const ethersProvider = new BrowserProvider(walletProvider);
+    const signer = await ethersProvider.getSigner();
+    const commerceContract = new Contract(
+      commerceContractAddress,
+      commerceABI,
+      signer
+    );
+
     try {
-      if (!walletProvider) return;
+      const productCount = await commerceContract.getProductCount();
+      const fetchedProducts = [];
 
-      const ethersProvider = new BrowserProvider(walletProvider);
-      const contract = new Contract(commerceContractAddress, commerceABI, ethersProvider);
-
-      // Get product count
-      const productCount = await contract.getProductCount();
-      
-      // Fetch details for each product
-      const productsData = [];
       for (let i = 1; i <= productCount; i++) {
-        try {
-          const product = await contract.getProduct(i);
-          if (!product[7]) { // Only add unpurchased products (purchased = false)
-            productsData.push({
-              id: product[0].toString(),
-              seller: product[1],
-              name: product[2],
-              description: product[3],
-              category: product[4],
-              price: ethers.formatUnits(product[5], 6), // USDC has 6 decimals
-              currency: product[6],
-              purchased: product[7],
-              chain: "Linea", // All products are on Linea
-              image: getProductImage(product[0].toString(), product[4]) // Get image based on category
-            });
-          }
-        } catch (error) {
-          console.log(`Error fetching product ${i}:`, error);
-        }
+        const product = await commerceContract.getProduct(i);
+        const chainName = await commerceContract.getChainFromCurrency(product.currency);
+        
+        fetchedProducts.push({
+          id: product.id.toString(),
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          price: ethers.formatUnits(product.price, 6), // USDC has 6 decimals
+          currency: product.currency,
+          chain: chainName,
+          seller: product.seller,
+          purchased: product.purchased,
+          image: getProductImage(product.id.toString(), product.category) // Get image based on category
+        });
       }
 
-      setProducts(productsData);
-      setFilteredProducts(productsData);
+      setProducts(fetchedProducts);
+      setFilteredProducts(fetchedProducts);
     } catch (error) {
       console.error("Error fetching products:", error);
-      // Fallback to mock data if contract fails
-      setProducts([
-        {
-          id: 1,
-          name: "iPhone 15 Pro",
-          description: "Latest iPhone with advanced camera system and A17 Pro chip",
-          image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-          category: "electronics",
-          price: "999",
-          currency: "USDC",
-          seller: "0x1234...5678",
-          chain: "Linea"
-        },
-        {
-          id: 2,
-          name: "Organic Coffee Beans",
-          description: "Premium organic coffee beans from Colombia",
-          image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=300&fit=crop",
-          category: "grocery",
-          price: "25",
-          currency: "USDC",
-          seller: "0x8765...4321",
-          chain: "Linea"
-        }
-      ]);
     } finally {
       setLoading(false);
     }
@@ -371,33 +345,30 @@ const Marketplace = () => {
 
               {/* Product Info */}
               <div className="p-6">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-xl font-bold text-white">{product.name}</h3>
-                  <span className="text-2xl font-bold text-blue-400">
-                    {product.price} USDC
+                <div className="flex justify-between items-start mb-4">
+                  <h3 className="text-xl font-bold text-white mb-2">{product.name}</h3>
+                  <span className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium">
+                    {product.chain}
                   </span>
                 </div>
-
-                <p className="text-gray-300 text-sm mb-4 line-clamp-2">
-                  {product.description}
-                </p>
-
+                <p className="text-gray-300 mb-4 line-clamp-2">{product.description}</p>
                 <div className="flex items-center justify-between mb-4">
                   <span className="text-blue-400 text-xs bg-blue-600/20 px-2 py-1 rounded">
                     {product.category}
                   </span>
-                  <span className="text-gray-400 text-xs">
-                    Seller: {product.seller.slice(0, 6)}...{product.seller.slice(-4)}
-                  </span>
                 </div>
-
-                {/* Purchase Button */}
-                <button
-                  onClick={() => handlePurchase(product)}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors duration-200"
-                >
-                  Purchase Now
-                </button>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-2xl font-bold text-blue-400">{product.price} USDC</p>
+                    <p className="text-sm text-gray-400">Seller: {product.seller.slice(0, 6)}...{product.seller.slice(-4)}</p>
+                  </div>
+                  <button
+                    onClick={() => handlePurchase(product)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Buy Now
+                  </button>
+                </div>
               </div>
             </div>
           ))}

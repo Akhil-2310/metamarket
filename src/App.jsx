@@ -3,6 +3,7 @@ import Marketplace from "./components/Marketplace";
 import Home from "./components/Home";
 import ListProducts from "./components/ListProducts";
 import MyProducts from "./components/MyProducts";
+import Leaderboard from "./components/Leaderboard";
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
           <Route path="/marketplace" element={<Marketplace />} />
           <Route path="/list" element={<ListProducts />} />
           <Route path="/my" element={<MyProducts />} />
+          <Route path="/leaderboard" element={<Leaderboard />} />
         </Routes>
       </Router>
     </>

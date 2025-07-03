@@ -28,8 +28,10 @@ contract Commerce {
         address currency
     );
 
-    // USDC address for Linea
+    // USDC addresses for different chains
     address constant USDC_LINEA = 0x176211869cA2b568f2A7D4EE941E073a821EE1ff; // USDC on Linea
+    address constant USDC_BASE = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913; // USDC on Base
+    address constant USDC_ARBITRUM = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831; // USDC on Arbitrum
 
     // Function to list a product
     function listProduct(
@@ -43,7 +45,10 @@ contract Commerce {
         require(bytes(_description).length > 0, "Product description is required");
         require(bytes(_category).length > 0, "Product category is required");
         require(_price > 0, "Product price must be greater than zero");
-        require(_currency == USDC_LINEA, "Only USDC is supported");
+        require(
+            _currency == USDC_LINEA || _currency == USDC_BASE || _currency == USDC_ARBITRUM,
+            "Only USDC on supported chains is allowed"
+        );
 
         productCount++;
         products[productCount] = Product(
@@ -99,5 +104,13 @@ contract Commerce {
     // Function to get product count
     function getProductCount() public view returns (uint256) {
         return productCount;
+    }
+
+    // Function to get chain name from currency address
+    function getChainFromCurrency(address _currency) public pure returns (string memory) {
+        if (_currency == USDC_LINEA) return "Linea";
+        if (_currency == USDC_BASE) return "Base";
+        if (_currency == USDC_ARBITRUM) return "Arbitrum";
+        return "Unknown";
     }
 }

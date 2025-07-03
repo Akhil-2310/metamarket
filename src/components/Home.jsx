@@ -19,9 +19,7 @@ const Home = () => {
               <Link to="/marketplace" className="btn btn-primary btn-lg bg-blue-600 hover:bg-blue-700 text-white border-none">
                 Explore Marketplace
               </Link>
-              <Link to="/my-products" className="btn btn-outline btn-lg text-white border-blue-600 hover:bg-blue-600">
-                My Products
-              </Link>
+             
             </div>
           </div>
         </div>
