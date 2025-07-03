@@ -27,51 +27,40 @@ const Marketplace = () => {
     setLoading(true);
     
     try {
-      // Get product count
-      const productCount = await publicClient.readContract({
+      // Get all products at once using the getAllProducts function
+      const allProducts = await publicClient.readContract({
         address: commerceContractAddress,
         abi: commerceABI,
-        functionName: "getProductCount"
+        functionName: "getAllProducts"
       });
-      
-      if (productCount.toString() === "0") {
-        setProducts([]);
-        setFilteredProducts([]);
-        setLoading(false);
-        return;
-      }
 
+      const [ids, sellers, names, descriptions, categories, prices, currencies, purchased, buyers] = allProducts;
+      
       const fetchedProducts = [];
 
-      // Fetch each product
-      for (let i = 1; i <= productCount; i++) {
-        const product = await publicClient.readContract({
-          address: commerceContractAddress,
-          abi: commerceABI,
-          functionName: "getProduct",
-          args: [i]
-        });
-
-        const chainName = await publicClient.readContract({
-          address: commerceContractAddress,
-          abi: commerceABI,
-          functionName: "getChainFromCurrency",
-          args: [product.currency]
-        });
-        
+      // Process all products
+      for (let i = 0; i < ids.length; i++) {
         // Only add unpurchased products to the marketplace
-        if (!product.purchased) {
+        if (!purchased[i]) {
+          const chainName = await publicClient.readContract({
+            address: commerceContractAddress,
+            abi: commerceABI,
+            functionName: "getChainFromCurrency",
+            args: [currencies[i]]
+          });
+
           fetchedProducts.push({
-            id: product.id.toString(),
-            name: product.name,
-            description: product.description,
-            category: product.category,
-            price: formatUnits(product.price, 6), // USDC has 6 decimals
-            currency: product.currency,
+            id: ids[i].toString(),
+            name: names[i],
+            description: descriptions[i],
+            category: categories[i],
+            price: formatUnits(prices[i], 6), // USDC has 6 decimals
+            currency: currencies[i],
             chain: chainName,
-            seller: product.seller,
-            purchased: product.purchased,
-            image: getProductImage(product.id.toString(), product.category) // Get image based on category
+            seller: sellers[i],
+            purchased: purchased[i],
+            buyer: buyers[i],
+            image: getProductImage(ids[i].toString(), categories[i]) // Get image based on category
           });
         }
       }

@@ -1,42 +1,57 @@
 import React, { useState, useEffect } from 'react';
-import { useWeb3ModalAccount, useWeb3ModalProvider } from '@web3modal/ethers/react';
-import { BrowserProvider, Contract } from 'ethers';
+import { useAccount } from 'wagmi';
+import { formatUnits } from 'viem';
+import { publicClient } from '../config/wagmi';
 import commerceABI from '../contracts/Commerce.json';
 import { getProductImage } from '../utils/productImages';
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
 
 const MyProducts = () => {
-  const { address, isConnected } = useWeb3ModalAccount();
-  const { walletProvider } = useWeb3ModalProvider();
+  const { address } = useAccount();
   const [myProducts, setMyProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const fetchMyProducts = async () => {
-    if (!walletProvider || !address) return;
-
-    const ethersProvider = new BrowserProvider(walletProvider);
-    const signer = await ethersProvider.getSigner();
-    const commerceContract = new Contract(
-      commerceContractAddress,
-      commerceABI,
-      signer
-    );
+    if (!address) {
+      setMyProducts([]);
+      setLoading(false);
+      return;
+    }
 
     try {
-      const productIds = await commerceContract.getProductsBySeller(address);
+      // Get product IDs for the current seller
+      const productIds = await publicClient.readContract({
+        address: commerceContractAddress,
+        abi: commerceABI,
+        functionName: "getProductsBySeller",
+        args: [address]
+      });
+
       const fetchedProducts = [];
 
+      // Fetch each product's details
       for (let i = 0; i < productIds.length; i++) {
-        const product = await commerceContract.getProduct(productIds[i]);
-        const chainName = await commerceContract.getChainFromCurrency(product.currency);
+        const product = await publicClient.readContract({
+          address: commerceContractAddress,
+          abi: commerceABI,
+          functionName: "getProduct",
+          args: [productIds[i]]
+        });
+
+        const chainName = await publicClient.readContract({
+          address: commerceContractAddress,
+          abi: commerceABI,
+          functionName: "getChainFromCurrency",
+          args: [product.currency]
+        });
         
         fetchedProducts.push({
           id: product.id.toString(),
           name: product.name,
           description: product.description,
           category: product.category,
-          price: ethers.formatUnits(product.price, 6), // USDC has 6 decimals
+          price: formatUnits(product.price, 6), // USDC has 6 decimals
           currency: product.currency,
           chain: chainName,
           purchased: product.purchased,
@@ -48,16 +63,20 @@ const MyProducts = () => {
       setMyProducts(fetchedProducts);
     } catch (error) {
       console.error("Error fetching my products:", error);
+      setMyProducts([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (isConnected && address) {
+    if (address) {
       fetchMyProducts();
+    } else {
+      setMyProducts([]);
+      setLoading(false);
     }
-  }, [isConnected, address]);
+  }, [address]);
 
   const getStatusBadge = (purchased) => {
     if (purchased) {
@@ -75,7 +94,7 @@ const MyProducts = () => {
     }
   };
 
-  if (!isConnected) {
+  if (!address) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-center">
