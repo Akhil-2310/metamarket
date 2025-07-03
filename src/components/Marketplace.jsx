@@ -1,83 +1,219 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount } from "wagmi";
+import { useWeb3ModalProvider } from "@web3modal/ethers/react";
+import { BrowserProvider, Contract } from "ethers";
+
+const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
+const commerceABI = [
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "_name",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_description",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_category",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "_price",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "_currency",
+        type: "address",
+      },
+    ],
+    name: "listProduct",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_id",
+        type: "uint256",
+      },
+    ],
+    name: "getProduct",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "id",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "seller",
+        type: "address",
+      },
+      {
+        internalType: "string",
+        name: "name",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "description",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "category",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "price",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "currency",
+        type: "address",
+      },
+      {
+        internalType: "bool",
+        name: "purchased",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getProductCount",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+];
 
 const Marketplace = () => {
   const { address } = useAccount();
+  const { walletProvider } = useWeb3ModalProvider();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filteredProducts, setFilteredProducts] = useState([]);
 
-  // Mock products data - replace with actual data from your smart contract
-  const [products] = useState([
-    {
-      id: 1,
-      name: "iPhone 15 Pro",
-      description: "Latest iPhone with advanced camera system and A17 Pro chip",
-      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-      category: "electronics",
-      price: "999",
-      currency: "USDC",
-      seller: "0x1234...5678",
-      chain: "Linea"
-    },
-    {
-      id: 2,
-      name: "Organic Coffee Beans",
-      description: "Premium organic coffee beans from Colombia",
-      image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=300&fit=crop",
-      category: "grocery",
-      price: "25",
-      currency: "USDC",
-      seller: "0x8765...4321",
-      chain: "Base"
-    },
-    {
-      id: 3,
-      name: "Designer T-Shirt",
-      description: "Comfortable cotton t-shirt with unique design",
-      image: "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=300&fit=crop",
-      category: "clothing",
-      price: "45",
-      currency: "USDC",
-      seller: "0x9876...5432",
-      chain: "Arbitrum"
-    },
-    {
-      id: 4,
-      name: "Wireless Headphones",
-      description: "High-quality wireless headphones with noise cancellation",
-      image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
-      category: "electronics",
-      price: "199",
-      currency: "USDC",
-      seller: "0x5432...1098",
-      chain: "Linea"
-    },
-    {
-      id: 5,
-      name: "Fresh Vegetables Bundle",
-      description: "Organic vegetables bundle including carrots, broccoli, and spinach",
-      image: "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop",
-      category: "grocery",
-      price: "35",
-      currency: "USDC",
-      seller: "0x2109...8765",
-      chain: "Base"
-    },
-    {
-      id: 6,
-      name: "Denim Jacket",
-      description: "Classic denim jacket perfect for any occasion",
-      image: "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&h=300&fit=crop",
-      category: "clothing",
-      price: "89",
-      currency: "USDC",
-      seller: "0x6543...2109",
-      chain: "Arbitrum"
+  // Mock images for products - you can replace this with your own image mapping
+  const getProductImage = (productId, category) => {
+    const images = {
+      electronics: [
+        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=300&fit=crop"
+      ],
+      grocery: [
+        "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1519996529931-28324d5a630e?w=400&h=300&fit=crop"
+      ],
+      clothing: [
+        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&h=300&fit=crop",
+        "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=300&fit=crop"
+      ]
+    };
+    
+    const categoryImages = images[category] || images.electronics;
+    const imageIndex = (parseInt(productId) - 1) % categoryImages.length;
+    return categoryImages[imageIndex];
+  };
+
+  // Fetch products from smart contract
+  const fetchProducts = async () => {
+    try {
+      if (!walletProvider) return;
+
+      const ethersProvider = new BrowserProvider(walletProvider);
+      const contract = new Contract(commerceContractAddress, commerceABI, ethersProvider);
+
+      // Get product count
+      const productCount = await contract.getProductCount();
+      
+      // Fetch details for each product
+      const productsData = [];
+      for (let i = 1; i <= productCount; i++) {
+        try {
+          const product = await contract.getProduct(i);
+          if (!product[7]) { // Only add unpurchased products (purchased = false)
+            productsData.push({
+              id: product[0].toString(),
+              seller: product[1],
+              name: product[2],
+              description: product[3],
+              category: product[4],
+              price: ethers.formatUnits(product[5], 6), // USDC has 6 decimals
+              currency: product[6],
+              purchased: product[7],
+              chain: "Linea", // All products are on Linea
+              image: getProductImage(product[0].toString(), product[4]) // Get image based on category
+            });
+          }
+        } catch (error) {
+          console.log(`Error fetching product ${i}:`, error);
+        }
+      }
+
+      setProducts(productsData);
+      setFilteredProducts(productsData);
+    } catch (error) {
+      console.error("Error fetching products:", error);
+      // Fallback to mock data if contract fails
+      setProducts([
+        {
+          id: 1,
+          name: "iPhone 15 Pro",
+          description: "Latest iPhone with advanced camera system and A17 Pro chip",
+          image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
+          category: "electronics",
+          price: "999",
+          currency: "USDC",
+          seller: "0x1234...5678",
+          chain: "Linea"
+        },
+        {
+          id: 2,
+          name: "Organic Coffee Beans",
+          description: "Premium organic coffee beans from Colombia",
+          image: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=300&fit=crop",
+          category: "grocery",
+          price: "25",
+          currency: "USDC",
+          seller: "0x8765...4321",
+          chain: "Linea"
+        }
+      ]);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  useEffect(() => {
+    fetchProducts();
+  }, [walletProvider]);
 
   useEffect(() => {
     let filtered = products;
@@ -104,7 +240,7 @@ const Marketplace = () => {
         filtered = [...filtered].sort((a, b) => parseFloat(b.price) - parseFloat(a.price));
         break;
       case 'newest':
-        filtered = [...filtered].sort((a, b) => b.id - a.id);
+        filtered = [...filtered].sort((a, b) => parseInt(b.id) - parseInt(a.id));
         break;
       default:
         break;
@@ -113,13 +249,46 @@ const Marketplace = () => {
     setFilteredProducts(filtered);
   }, [searchTerm, selectedCategory, sortBy, products]);
 
-  const handlePurchase = (product) => {
+  const handlePurchase = async (product) => {
     if (!address) {
       alert("Please connect your wallet to purchase products");
       return;
     }
-    alert(`Purchase initiated for ${product.name} for ${product.price} ${product.currency}`);
+
+    if (!walletProvider) {
+      alert("Wallet provider not available");
+      return;
+    }
+
+    try {
+      const ethersProvider = new BrowserProvider(walletProvider);
+      const signer = await ethersProvider.getSigner();
+      const contract = new Contract(commerceContractAddress, commerceABI, signer);
+
+      // Note: This would require USDC approval first
+      alert(`Purchase initiated for ${product.name} for ${product.price} USDC`);
+      
+      // Uncomment when ready to implement actual purchase
+      // const tx = await contract.purchaseProduct(product.id);
+      // await tx.wait();
+      // alert("Purchase successful!");
+      // fetchProducts(); // Refresh products
+    } catch (error) {
+      console.error("Purchase error:", error);
+      alert("Purchase failed. Please try again.");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-white">Loading products...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -205,7 +374,7 @@ const Marketplace = () => {
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-xl font-bold text-white">{product.name}</h3>
                   <span className="text-2xl font-bold text-blue-400">
-                    {product.price} {product.currency}
+                    {product.price} USDC
                   </span>
                 </div>
 
@@ -218,7 +387,7 @@ const Marketplace = () => {
                     {product.category}
                   </span>
                   <span className="text-gray-400 text-xs">
-                    Seller: {product.seller}
+                    Seller: {product.seller.slice(0, 6)}...{product.seller.slice(-4)}
                   </span>
                 </div>
 

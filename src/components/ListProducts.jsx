@@ -7,6 +7,10 @@ import { BrowserProvider, Contract, ethers } from "ethers";
 import { createWeb3Modal, defaultConfig } from "@web3modal/ethers/react";
 import { useNavigate } from "react-router-dom";
 
+const usdc_arbitrum = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
+const  usdc_base= "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const usdc_linea = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff";
+
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
 const commerceABI = [
@@ -399,41 +403,16 @@ const ListProducts = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    image: "",
     category: "",
     price: "",
     currency: USDC_LINEA,
-    receiveCurrency: "USDC on Linea",
   });
-
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value,
     });
-  };
-
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target.result);
-      };
-      reader.readAsDataURL(file);
-      
-      // Update form data with file name (you can modify this to handle file upload)
-      setFormData({
-        ...formData,
-        image: file.name
-      });
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -460,11 +439,9 @@ const ListProducts = () => {
       const tx = await commerceContract.listProduct(
         formData.name,
         formData.description,
-        formData.image,
         formData.category,
         priceInWei,
-        formData.currency,
-        formData.receiveCurrency
+        formData.currency
       );
 
       console.log(priceInWei);
@@ -476,6 +453,7 @@ const ListProducts = () => {
       console.log("Error listing product:", error);
     }
   };
+  
   return (
     <div className="min-h-screen flex items-center justify-center bg-black ">
       <form
@@ -516,31 +494,6 @@ const ListProducts = () => {
 
         <div className="mb-6">
           <label className="block text-white text-sm font-bold mb-2">
-            Product Image
-          </label>
-          <div className="space-y-4">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              required
-              className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
-            />
-            {imagePreview && (
-              <div className="mt-4">
-                <p className="text-gray-300 text-sm mb-2">Image Preview:</p>
-                <img 
-                  src={imagePreview} 
-                  alt="Product preview" 
-                  className="w-full h-48 object-cover rounded-lg border border-blue-600/30"
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <label className="block text-white text-sm font-bold mb-2">
             Category
           </label>
           <select
@@ -574,7 +527,7 @@ const ListProducts = () => {
           />
         </div>
 
-        <div className="mb-6">
+        <div className="mb-8">
           <label className="block text-white text-sm font-bold mb-2">
             Currency
           </label>
@@ -586,23 +539,6 @@ const ListProducts = () => {
             className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
           >
             <option value={USDC_LINEA}>USDC</option>
-          </select>
-        </div>
-
-        <div className="mb-8">
-          <label className="block text-white text-sm font-bold mb-2">
-            Receive Currency
-          </label>
-          <select
-            name="receiveCurrency"
-            value={formData.receiveCurrency}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
-          >
-            <option value="USDC on Linea">USDC on Linea</option>
-            <option value="USDC on Base">USDC on Base</option>
-            <option value="USDC on Arbitrum">USDC on Arbitrum</option>
           </select>
         </div>
 
