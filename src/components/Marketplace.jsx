@@ -1,111 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount } from "wagmi";
 import { useWeb3ModalProvider } from "@web3modal/ethers/react";
-import { BrowserProvider, Contract } from "ethers";
+import { BrowserProvider, Contract, ethers } from "ethers";
+import commerceABI from '../contracts/Commerce.json';
+import { getProductImage } from '../utils/productImages';
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
-const commerceABI = [
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_description",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_category",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_price",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_currency",
-        type: "address",
-      },
-    ],
-    name: "listProduct",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_id",
-        type: "uint256",
-      },
-    ],
-    name: "getProduct",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "id",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "seller",
-        type: "address",
-      },
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "category",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "price",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "currency",
-        type: "address",
-      },
-      {
-        internalType: "bool",
-        name: "purchased",
-        type: "bool",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "getProductCount",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-];
 
 const Marketplace = () => {
   const { address } = useAccount();
@@ -116,31 +16,6 @@ const Marketplace = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filteredProducts, setFilteredProducts] = useState([]);
-
-  // Mock images for products - you can replace this with your own image mapping
-  const getProductImage = (productId, category) => {
-    const images = {
-      electronics: [
-        "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400&h=300&fit=crop"
-      ],
-      grocery: [
-        "https://images.unsplash.com/photo-1447933601403-0c6688de566e?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1519996529931-28324d5a630e?w=400&h=300&fit=crop"
-      ],
-      clothing: [
-        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1576995853123-5a10305d93c0?w=400&h=300&fit=crop",
-        "https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=400&h=300&fit=crop"
-      ]
-    };
-    
-    const categoryImages = images[category] || images.electronics;
-    const imageIndex = (parseInt(productId) - 1) % categoryImages.length;
-    return categoryImages[imageIndex];
-  };
 
   // Fetch products from smart contract
   const fetchProducts = async () => {
@@ -162,18 +37,21 @@ const Marketplace = () => {
         const product = await commerceContract.getProduct(i);
         const chainName = await commerceContract.getChainFromCurrency(product.currency);
         
-        fetchedProducts.push({
-          id: product.id.toString(),
-          name: product.name,
-          description: product.description,
-          category: product.category,
-          price: ethers.formatUnits(product.price, 6), // USDC has 6 decimals
-          currency: product.currency,
-          chain: chainName,
-          seller: product.seller,
-          purchased: product.purchased,
-          image: getProductImage(product.id.toString(), product.category) // Get image based on category
-        });
+        // Only add unpurchased products to the marketplace
+        if (!product.purchased) {
+          fetchedProducts.push({
+            id: product.id.toString(),
+            name: product.name,
+            description: product.description,
+            category: product.category,
+            price: ethers.formatUnits(product.price, 6), // USDC has 6 decimals
+            currency: product.currency,
+            chain: chainName,
+            seller: product.seller,
+            purchased: product.purchased,
+            image: getProductImage(product.id.toString(), product.category) // Get image based on category
+          });
+        }
       }
 
       setProducts(fetchedProducts);
@@ -224,32 +102,52 @@ const Marketplace = () => {
   }, [searchTerm, selectedCategory, sortBy, products]);
 
   const handlePurchase = async (product) => {
-    if (!address) {
-      alert("Please connect your wallet to purchase products");
+    if (!walletProvider) {
+      alert("Please connect your wallet first");
       return;
     }
 
-    if (!walletProvider) {
-      alert("Wallet provider not available");
-      return;
-    }
+    const ethersProvider = new BrowserProvider(walletProvider);
+    const signer = await ethersProvider.getSigner();
+    const commerceContract = new Contract(
+      commerceContractAddress,
+      commerceABI,
+      signer
+    );
 
     try {
-      const ethersProvider = new BrowserProvider(walletProvider);
-      const signer = await ethersProvider.getSigner();
-      const contract = new Contract(commerceContractAddress, commerceABI, signer);
+      // First, approve USDC spending
+      const usdcToken = new Contract(
+        product.currency,
+        [
+          "function approve(address spender, uint256 amount) external returns (bool)",
+          "function allowance(address owner, address spender) external view returns (uint256)"
+        ],
+        signer
+      );
 
-      // Note: This would require USDC approval first
-      alert(`Purchase initiated for ${product.name} for ${product.price} USDC`);
+      const priceInWei = ethers.parseUnits(product.price, 6);
+      const currentAllowance = await usdcToken.allowance(await signer.getAddress(), commerceContractAddress);
+
+      if (currentAllowance < priceInWei) {
+        console.log("Approving USDC spending...");
+        const approveTx = await usdcToken.approve(commerceContractAddress, priceInWei);
+        await approveTx.wait();
+        console.log("USDC approved");
+      }
+
+      // Now buy the product
+      console.log("Purchasing product...");
+      const buyTx = await commerceContract.buyProduct(product.id);
+      await buyTx.wait();
       
-      // Uncomment when ready to implement actual purchase
-      // const tx = await contract.purchaseProduct(product.id);
-      // await tx.wait();
-      // alert("Purchase successful!");
-      // fetchProducts(); // Refresh products
+      alert("Product purchased successfully!");
+      
+      // Refresh the products list
+      fetchProducts();
     } catch (error) {
-      console.error("Purchase error:", error);
-      alert("Purchase failed. Please try again.");
+      console.error("Error purchasing product:", error);
+      alert("Failed to purchase product. Please check your USDC balance and try again.");
     }
   };
 

@@ -14,9 +14,14 @@ contract Commerce {
         uint256 price;
         address currency;
         bool purchased;
+        address buyer;
     }
 
     mapping(uint256 => Product) public products;
+    
+    // Track user purchases for leaderboard
+    mapping(address => uint256) public userPurchaseCount;
+    mapping(address => uint256) public userTotalSpent;
 
     event ProductListed(
         uint256 id,
@@ -24,6 +29,14 @@ contract Commerce {
         string name,
         string description,
         string category,
+        uint256 price,
+        address currency
+    );
+
+    event ProductPurchased(
+        uint256 id,
+        address seller,
+        address buyer,
         uint256 price,
         address currency
     );
@@ -59,7 +72,8 @@ contract Commerce {
             _category,
             _price,
             _currency,
-            false
+            false,
+            address(0)
         );
 
         emit ProductListed(
@@ -70,6 +84,37 @@ contract Commerce {
             _category, 
             _price, 
             _currency
+        );
+    }
+
+    // Function to buy a product
+    function buyProduct(uint256 _productId) public {
+        require(_productId > 0 && _productId <= productCount, "Invalid product ID");
+        Product storage product = products[_productId];
+        require(!product.purchased, "Product already purchased");
+        require(msg.sender != product.seller, "Cannot buy your own product");
+
+        // Transfer USDC from buyer to seller
+        IERC20 usdcToken = IERC20(product.currency);
+        require(
+            usdcToken.transferFrom(msg.sender, product.seller, product.price),
+            "USDC transfer failed"
+        );
+
+        // Mark product as purchased
+        product.purchased = true;
+        product.buyer = msg.sender;
+
+        // Update leaderboard stats
+        userPurchaseCount[msg.sender]++;
+        userTotalSpent[msg.sender] += product.price;
+
+        emit ProductPurchased(
+            _productId,
+            product.seller,
+            msg.sender,
+            product.price,
+            product.currency
         );
     }
 
@@ -85,7 +130,8 @@ contract Commerce {
             string memory category,
             uint256 price,
             address currency,
-            bool purchased
+            bool purchased,
+            address buyer
         )
     {
         Product memory _product = products[_id];
@@ -97,8 +143,51 @@ contract Commerce {
             _product.category,
             _product.price,
             _product.currency,
-            _product.purchased
+            _product.purchased,
+            _product.buyer
         );
+    }
+
+    // Function to get products by seller address
+    function getProductsBySeller(address _seller) public view returns (uint256[] memory) {
+        uint256[] memory sellerProducts = new uint256[](productCount);
+        uint256 count = 0;
+        
+        for (uint256 i = 1; i <= productCount; i++) {
+            if (products[i].seller == _seller) {
+                sellerProducts[count] = i;
+                count++;
+            }
+        }
+        
+        // Resize array to actual count
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = sellerProducts[i];
+        }
+        
+        return result;
+    }
+
+    // Function to get products by buyer address
+    function getProductsByBuyer(address _buyer) public view returns (uint256[] memory) {
+        uint256[] memory buyerProducts = new uint256[](productCount);
+        uint256 count = 0;
+        
+        for (uint256 i = 1; i <= productCount; i++) {
+            if (products[i].buyer == _buyer) {
+                buyerProducts[count] = i;
+                count++;
+            }
+        }
+        
+        // Resize array to actual count
+        uint256[] memory result = new uint256[](count);
+        for (uint256 i = 0; i < count; i++) {
+            result[i] = buyerProducts[i];
+        }
+        
+        return result;
     }
 
     // Function to get product count
@@ -112,5 +201,19 @@ contract Commerce {
         if (_currency == USDC_BASE) return "Base";
         if (_currency == USDC_ARBITRUM) return "Arbitrum";
         return "Unknown";
+    }
+
+    // Function to get user stats for leaderboard
+    function getUserStats(address _user) public view returns (uint256 purchaseCount, uint256 totalSpent) {
+        return (userPurchaseCount[_user], userTotalSpent[_user]);
+    }
+
+    // Function to get all product IDs
+    function getAllProducts() public view returns (uint256[] memory) {
+        uint256[] memory allProducts = new uint256[](productCount);
+        for (uint256 i = 0; i < productCount; i++) {
+            allProducts[i] = i + 1;
+        }
+        return allProducts;
     }
 }
