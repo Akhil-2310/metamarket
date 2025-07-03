@@ -1,10 +1,13 @@
 import React from 'react'
 
 import { useAccount, useConnect, useDisconnect } from "wagmi"
+import { metaMask } from 'wagmi/connectors';
+
+const connectors = [metaMask()]
 
 export const ConnectButton = () => {
     const { address } = useAccount()
-    const { connectors, connect } = useConnect()
+    const { connect } = useConnect()
     const { disconnect } = useDisconnect()
   
     return (
@@ -28,7 +31,7 @@ export const ConnectButton = () => {
               onClick={() => connect({ connector })}
               className="btn btn-primary btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
             >
-              {connector.name}
+              {connector.name || 'Connect MetaMask'}
             </button>
           ))
         )}
