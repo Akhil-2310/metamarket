@@ -459,12 +459,12 @@ const ListProducts = () => {
     }
   };
   return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
+    <div className="min-h-screen flex items-center justify-center bg-black ">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30"
+        className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30 mt-[50px]"
       >
-        <h2 className="text-3xl font-bold mb-8 text-white text-center">List Your Product</h2>
+        <h2 className="text-3xl font-bold mb-8 text-white text-center ">List Your Product</h2>
 
         <div className="mb-6">
           <label className="block text-white text-sm font-bold mb-2">
@@ -573,6 +573,8 @@ const ListProducts = () => {
             className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
           >
             <option value="USDC on Linea">USDC on Linea</option>
+            <option value="USDC on Base">USDC on Base</option>
+            <option value="USDC on Arbitrum">USDC on Arbitrum</option>
           </select>
         </div>
 
