@@ -2,8 +2,8 @@ import React from 'react';
 
 const Footer = () => {
   return (
-    <footer className="bg-black border-t border-blue-600/30">
-      <div className="max-w-7xl mx-auto px-4 py-12">
+    <footer className="bg-black border-t border-blue-600/30 ">
+      <div className="max-w-7xl mx-auto px-4 py-12 mt-[30px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="col-span-1 md:col-span-2">
@@ -93,12 +93,8 @@ const Footer = () => {
               © 2024 MetaMarket. All rights reserved.
             </p>
             <div className="flex space-x-6 mt-4 md:mt-0">
-              <span className="text-gray-400 text-sm">Supported Chains:</span>
-              <div className="flex space-x-2">
-                <span className="text-blue-400 text-xs bg-blue-600/20 px-2 py-1 rounded">Linea</span>
-                <span className="text-blue-400 text-xs bg-blue-600/20 px-2 py-1 rounded">Base</span>
-                <span className="text-blue-400 text-xs bg-blue-600/20 px-2 py-1 rounded">Arbitrum</span>
-              </div>
+  
+             
             </div>
           </div>
         </div>

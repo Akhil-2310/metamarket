@@ -384,8 +384,9 @@ createWeb3Modal({
 });
 
 
-const USDTAddress = "0x1abFB5a6B1c8AA5eB928f2447ED2b22d471b38A3";
-const DAIAddress = "0xC817c2C63178877069107873489ea69819f1A537";
+const USDC_LINEA = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff";
+const USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
+const USDC_ARBITRUM = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 
 
 
@@ -401,9 +402,12 @@ const ListProducts = () => {
     image: "",
     category: "",
     price: "",
-    currency: "USDC",
+    currency: USDC_LINEA,
     receiveCurrency: "USDC on Linea",
   });
+
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const handleChange = (e) => {
     setFormData({
@@ -412,6 +416,25 @@ const ListProducts = () => {
     });
   };
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target.result);
+      };
+      reader.readAsDataURL(file);
+      
+      // Update form data with file name (you can modify this to handle file upload)
+      setFormData({
+        ...formData,
+        image: file.name
+      });
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -429,14 +452,8 @@ const ListProducts = () => {
     );
     console.log("hey");
     try {
-      let priceInWei;
-      if (formData.currency === "0x323e78f944A9a1FcF3a10efcC5319DBb0bB6e673") {
-        // USDT has 6 decimals
-        priceInWei = ethers.parseUnits(formData.price.toString(), 6);
-      } else {
-        // DAI has 18 decimals
-        priceInWei = ethers.parseUnits(formData.price.toString(), 18);
-      }
+      // USDC has 6 decimals
+      const priceInWei = ethers.parseUnits(formData.price.toString(), 6);
 
       console.log(formData);
 
@@ -446,7 +463,8 @@ const ListProducts = () => {
         formData.image,
         formData.category,
         priceInWei,
-        formData.currency
+        formData.currency,
+        formData.receiveCurrency
       );
 
       console.log(priceInWei);
@@ -462,7 +480,7 @@ const ListProducts = () => {
     <div className="min-h-screen flex items-center justify-center bg-black ">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30 mt-[50px]"
+        className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30 mt-[50px] mb-[50px]"
       >
         <h2 className="text-3xl font-bold mb-8 text-white text-center ">List Your Product</h2>
 
@@ -498,17 +516,27 @@ const ListProducts = () => {
 
         <div className="mb-6">
           <label className="block text-white text-sm font-bold mb-2">
-            Image URL
+            Product Image
           </label>
-          <input
-            type="text"
-            name="image"
-            value={formData.image}
-            onChange={handleChange}
-            required
-            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
-            placeholder="Enter image URL"
-          />
+          <div className="space-y-4">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              required
+              className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+            />
+            {imagePreview && (
+              <div className="mt-4">
+                <p className="text-gray-300 text-sm mb-2">Image Preview:</p>
+                <img 
+                  src={imagePreview} 
+                  alt="Product preview" 
+                  className="w-full h-48 object-cover rounded-lg border border-blue-600/30"
+                />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="mb-6">
@@ -557,7 +585,7 @@ const ListProducts = () => {
             required
             className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
           >
-            <option value="USDC">USDC</option>
+            <option value={USDC_LINEA}>USDC</option>
           </select>
         </div>
 
