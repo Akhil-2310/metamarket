@@ -42,17 +42,19 @@ const Navbar = () => {
             </svg>
           </div>
           <ul tabIndex={0} className="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-            <li><a href="#products">Products</a></li>
-            <li><a href="#my-products">My Products</a></li>
+            <li><a href="/marketplace">Marketplace</a></li>
+            <li><a href="/list">Products</a></li>
+            <li><a href="/my">My Products</a></li>
           </ul>
         </div>
-        <a className="btn btn-ghost text-xl font-bold">MetaMarket</a>
+        <a className="btn btn-ghost text-xl font-bold hover:t">MetaMarket</a>
       </div>
       
       <div className="navbar-center hidden lg:flex">
         <ul className="menu menu-horizontal px-1">
-          <li><a href="#products" className="font-medium">Products</a></li>
-          <li><a href="#my-products" className="font-medium">My Products</a></li>
+          <li><a href="/marketplace" className="font-medium">Marketplace</a></li>
+          <li><a href="/list" className="font-medium">Products</a></li>
+          <li><a href="/my" className="font-medium">My Products</a></li>
         </ul>
       </div>
       
