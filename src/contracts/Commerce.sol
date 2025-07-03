@@ -208,12 +208,39 @@ contract Commerce {
         return (userPurchaseCount[_user], userTotalSpent[_user]);
     }
 
-    // Function to get all product IDs
-    function getAllProducts() public view returns (uint256[] memory) {
-        uint256[] memory allProducts = new uint256[](productCount);
+    // Function to get all product details as parallel arrays
+    function getAllProducts() public view returns (
+        uint256[] memory ids,
+        address[] memory sellers,
+        string[] memory names,
+        string[] memory descriptions,
+        string[] memory categories,
+        uint256[] memory prices,
+        address[] memory currencies,
+        bool[] memory purchased,
+        address[] memory buyers
+    ) {
+        ids = new uint256[](productCount);
+        sellers = new address[](productCount);
+        names = new string[](productCount);
+        descriptions = new string[](productCount);
+        categories = new string[](productCount);
+        prices = new uint256[](productCount);
+        currencies = new address[](productCount);
+        purchased = new bool[](productCount);
+        buyers = new address[](productCount);
+
         for (uint256 i = 0; i < productCount; i++) {
-            allProducts[i] = i + 1;
+            Product storage p = products[i + 1];
+            ids[i] = p.id;
+            sellers[i] = p.seller;
+            names[i] = p.name;
+            descriptions[i] = p.description;
+            categories[i] = p.category;
+            prices[i] = p.price;
+            currencies[i] = p.currency;
+            purchased[i] = p.purchased;
+            buyers[i] = p.buyer;
         }
-        return allProducts;
     }
 }
