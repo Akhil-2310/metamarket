@@ -94,28 +94,37 @@ contract Commerce {
         require(!product.purchased, "Product already purchased");
         require(msg.sender != product.seller, "Cannot buy your own product");
 
-        // Transfer USDC from buyer to seller
+        // Get USDC token contract
         IERC20 usdcToken = IERC20(product.currency);
-        require(
-            usdcToken.transferFrom(msg.sender, product.seller, product.price),
-            "USDC transfer failed"
-        );
+        
+        // Check USDC balance first
+        uint256 buyerBalance = usdcToken.balanceOf(msg.sender);
+        require(buyerBalance >= product.price, "Insufficient USDC balance");
 
-        // Mark product as purchased
-        product.purchased = true;
-        product.buyer = msg.sender;
+        // Check USDC allowance
+        uint256 allowance = usdcToken.allowance(msg.sender, address(this));
+        require(allowance >= product.price, "Insufficient USDC allowance");
 
-        // Update leaderboard stats
-        userPurchaseCount[msg.sender]++;
-        userTotalSpent[msg.sender] += product.price;
+        // Attempt transfer with explicit error handling
+        try usdcToken.transferFrom(msg.sender, product.seller, product.price) {
+            // Transfer successful, update product status
+            product.purchased = true;
+            product.buyer = msg.sender;
 
-        emit ProductPurchased(
-            _productId,
-            product.seller,
-            msg.sender,
-            product.price,
-            product.currency
-        );
+            // Update leaderboard stats
+            userPurchaseCount[msg.sender]++;
+            userTotalSpent[msg.sender] += product.price;
+
+            emit ProductPurchased(
+                _productId,
+                product.seller,
+                msg.sender,
+                product.price,
+                product.currency
+            );
+        } catch {
+            revert("USDC transfer failed - check allowance and balance");
+        }
     }
 
     // Function to get product details
@@ -242,5 +251,36 @@ contract Commerce {
             purchased[i] = p.purchased;
             buyers[i] = p.buyer;
         }
+    }
+
+    // Helper function to check if a product can be purchased
+    function canPurchaseProduct(uint256 _productId, address _buyer) public view returns (bool canPurchase, string memory reason) {
+        if (_productId <= 0 || _productId > productCount) {
+            return (false, "Invalid product ID");
+        }
+        
+        Product storage product = products[_productId];
+        
+        if (product.purchased) {
+            return (false, "Product already purchased");
+        }
+        
+        if (_buyer == product.seller) {
+            return (false, "Cannot buy your own product");
+        }
+        
+        IERC20 usdcToken = IERC20(product.currency);
+        uint256 balance = usdcToken.balanceOf(_buyer);
+        
+        if (balance < product.price) {
+            return (false, "Insufficient USDC balance");
+        }
+        
+        uint256 allowance = usdcToken.allowance(_buyer, address(this));
+        if (allowance < product.price) {
+            return (false, "Insufficient USDC allowance");
+        }
+        
+        return (true, "Can purchase");
     }
 }

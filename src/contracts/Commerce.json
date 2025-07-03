@@ -1,4 +1,4 @@
-export const abi=[
+[
 	{
 		"inputs": [
 			{
@@ -130,6 +130,35 @@ export const abi=[
 		],
 		"name": "ProductPurchased",
 		"type": "event"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_productId",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address",
+				"name": "_buyer",
+				"type": "address"
+			}
+		],
+		"name": "canPurchaseProduct",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "canPurchase",
+				"type": "bool"
+			},
+			{
+				"internalType": "string",
+				"name": "reason",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
 	},
 	{
 		"inputs": [],
