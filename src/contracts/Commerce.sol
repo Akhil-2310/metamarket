@@ -18,6 +18,7 @@ contract Commerce {
     }
 
     mapping(uint256 => Product) public products;
+    mapping(address => uint256[]) public purchasedProducts;
     
     // Track user purchases for leaderboard
     mapping(address => uint256) public userPurchaseCount;
@@ -35,8 +36,8 @@ contract Commerce {
 
     event ProductPurchased(
         uint256 id,
-        address seller,
         address buyer,
+        address seller,
         uint256 price,
         address currency
     );
@@ -76,55 +77,30 @@ contract Commerce {
             address(0)
         );
 
-        emit ProductListed(
-            productCount, 
-            msg.sender, 
-            _name, 
-            _description, 
-            _category, 
-            _price, 
-            _currency
-        );
+        emit ProductListed(productCount, msg.sender, _name, _description, _category, _price, _currency);
     }
 
-    // Function to buy a product
-    function buyProduct(uint256 _productId) public {
-        require(_productId > 0 && _productId <= productCount, "Invalid product ID");
-        Product storage product = products[_productId];
-        require(!product.purchased, "Product already purchased");
-        require(msg.sender != product.seller, "Cannot buy your own product");
+    // Function to purchase a product
+    function purchaseProduct(uint256 _id) public {
+        Product storage _product = products[_id];
+        require(_product.id > 0 && _product.id <= productCount, "Product does not exist");
+        require(!_product.purchased, "Product already purchased");
+        require(_product.seller != msg.sender, "Seller cannot buy their own product");
 
-        // Get USDC token contract
-        IERC20 usdcToken = IERC20(product.currency);
+        IERC20 token = IERC20(_product.currency);
+        require(token.transferFrom(msg.sender, _product.seller, _product.price), "Payment failed");
         
-        // Check USDC balance first
-        uint256 buyerBalance = usdcToken.balanceOf(msg.sender);
-        require(buyerBalance >= product.price, "Insufficient USDC balance");
+        _product.purchased = true;
+        _product.buyer = msg.sender;
+        products[_id] = _product;
 
-        // Check USDC allowance
-        uint256 allowance = usdcToken.allowance(msg.sender, address(this));
-        require(allowance >= product.price, "Insufficient USDC allowance");
+        purchasedProducts[msg.sender].push(_id);
 
-        // Attempt transfer with explicit error handling
-        try usdcToken.transferFrom(msg.sender, product.seller, product.price) {
-            // Transfer successful, update product status
-            product.purchased = true;
-            product.buyer = msg.sender;
+        // Update leaderboard stats
+        userPurchaseCount[msg.sender]++;
+        userTotalSpent[msg.sender] += _product.price;
 
-            // Update leaderboard stats
-            userPurchaseCount[msg.sender]++;
-            userTotalSpent[msg.sender] += product.price;
-
-            emit ProductPurchased(
-                _productId,
-                product.seller,
-                msg.sender,
-                product.price,
-                product.currency
-            );
-        } catch {
-            revert("USDC transfer failed - check allowance and balance");
-        }
+        emit ProductPurchased(_id, msg.sender, _product.seller, _product.price, _product.currency);
     }
 
     // Function to get product details
@@ -155,6 +131,30 @@ contract Commerce {
             _product.purchased,
             _product.buyer
         );
+    }
+
+    // Function to get purchased products for a user
+    function getPurchasedProducts(address _user) public view returns (uint256[] memory) {
+        return purchasedProducts[_user];
+    }
+
+    // Function to get product count
+    function getProductCount() public view returns (uint256) {
+        return productCount;
+    }
+
+    // Function to get chain name from currency address
+    function getChainFromCurrency(address _currency) public pure returns (string memory) {
+        if (_currency == USDC_LINEA) return "Linea";
+        if (_currency == USDC_BASE) return "Base";
+        if (_currency == USDC_ARBITRUM) return "Arbitrum";
+        return "Unknown";
+    }
+
+    // Function to get token symbol from currency address
+    function getTokenSymbol(address _currency) public pure returns (string memory) {
+        if (_currency == USDC_LINEA || _currency == USDC_BASE || _currency == USDC_ARBITRUM) return "USDC";
+        return "Unknown";
     }
 
     // Function to get products by seller address
@@ -197,19 +197,6 @@ contract Commerce {
         }
         
         return result;
-    }
-
-    // Function to get product count
-    function getProductCount() public view returns (uint256) {
-        return productCount;
-    }
-
-    // Function to get chain name from currency address
-    function getChainFromCurrency(address _currency) public pure returns (string memory) {
-        if (_currency == USDC_LINEA) return "Linea";
-        if (_currency == USDC_BASE) return "Base";
-        if (_currency == USDC_ARBITRUM) return "Arbitrum";
-        return "Unknown";
     }
 
     // Function to get user stats for leaderboard
@@ -269,16 +256,16 @@ contract Commerce {
             return (false, "Cannot buy your own product");
         }
         
-        IERC20 usdcToken = IERC20(product.currency);
-        uint256 balance = usdcToken.balanceOf(_buyer);
+        IERC20 token = IERC20(product.currency);
+        uint256 balance = token.balanceOf(_buyer);
         
         if (balance < product.price) {
-            return (false, "Insufficient USDC balance");
+            return (false, "Insufficient token balance");
         }
         
-        uint256 allowance = usdcToken.allowance(_buyer, address(this));
+        uint256 allowance = token.allowance(_buyer, address(this));
         if (allowance < product.price) {
-            return (false, "Insufficient USDC allowance");
+            return (false, "Insufficient token allowance");
         }
         
         return (true, "Can purchase");

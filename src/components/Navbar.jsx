@@ -58,7 +58,7 @@ const Navbar = () => {
       <div className="navbar-center hidden lg:flex">
         <ul className="menu menu-horizontal px-1">
           <li><a href="/marketplace" className="text-white hover:bg-blue-600 font-medium">Marketplace</a></li>
-          <li><a href="/list" className="text-white hover:bg-blue-600 font-medium">Products</a></li>
+          <li><a href="/list" className="text-white hover:bg-blue-600 font-medium">List</a></li>
           <li><a href="/my" className="text-white hover:bg-blue-600 font-medium">My Products</a></li>
           <li><a href="/leaderboard" className="text-white hover:bg-blue-600 font-medium">Leaderboard</a></li>
         </ul>
