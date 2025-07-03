@@ -401,7 +401,8 @@ const ListProducts = () => {
     image: "",
     category: "",
     price: "",
-    currency: "",
+    currency: "USDC",
+    receiveCurrency: "USDC on Linea",
   });
 
   const handleChange = (e) => {
@@ -458,131 +459,133 @@ const ListProducts = () => {
     }
   };
   return (
-    <>
-      <div>
-        <div className="navbar bg-base-100">
-          <div className="flex-1">
-            <a className="btn btn-ghost text-xl">Social</a>
-          </div>
-          <div className="flex-none">
-            <ul className="menu menu-horizontal px-1">
-              <w3m-button />
-            </ul>
-          </div>
+    <div className="min-h-screen flex items-center justify-center bg-black">
+      <form
+        onSubmit={handleSubmit}
+        className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30"
+      >
+        <h2 className="text-3xl font-bold mb-8 text-white text-center">List Your Product</h2>
+
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Product Name
+          </label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
+            placeholder="Enter product name"
+          />
         </div>
-      </div>
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <form
-          onSubmit={handleSubmit}
-          className="w-full max-w-lg p-6 bg-white rounded-lg shadow-lg"
-        >
-          <h2 className="text-2xl font-bold mb-6">List Your Product</h2>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Product Name
-            </label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            />
-          </div>
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Description
+          </label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            required
+            rows="4"
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400 resize-none"
+            placeholder="Enter product description"
+          ></textarea>
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Description
-            </label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            ></textarea>
-          </div>
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Image URL
+          </label>
+          <input
+            type="text"
+            name="image"
+            value={formData.image}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
+            placeholder="Enter image URL"
+          />
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Image URL
-            </label>
-            <input
-              type="text"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            />
-          </div>
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Category
+          </label>
+          <select
+            name="category"
+            value={formData.category}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
+          >
+            <option value="" disabled>
+              Select Category
+            </option>
+            <option value="grocery">Grocery</option>
+            <option value="electronics">Electronics</option>
+            <option value="clothing">Clothing</option>
+          </select>
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Category
-            </label>
-            <select
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            >
-              <option value="" disabled>
-                Select Category
-              </option>
-              <option value="grocery">Grocery</option>
-              <option value="electronics">Electronics</option>
-              <option value="clothing">Clothing</option>
-            </select>
-          </div>
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Price
+          </label>
+          <input
+            type="text"
+            name="price"
+            value={formData.price}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white placeholder-gray-400"
+            placeholder="Enter price"
+          />
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Price
-            </label>
-            <input
-              type="text"
-              name="price"
-              value={formData.price}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            />
-          </div>
+        <div className="mb-6">
+          <label className="block text-white text-sm font-bold mb-2">
+            Currency
+          </label>
+          <select
+            name="currency"
+            value={formData.currency}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
+          >
+            <option value="USDC">USDC</option>
+          </select>
+        </div>
 
-          <div className="mb-4">
-            <label className="block text-gray-700 text-sm font-bold mb-2">
-              Currency
-            </label>
-            <select
-              name="currency"
-              value={formData.currency}
-              onChange={handleChange}
-              required
-              className="w-full px-3 py-2 border rounded-lg focus:outline-none"
-            >
-              <option value="" disabled>
-                Select Currency
-              </option>
-              <option value={USDTAddress}>USDT</option>
-              <option value={DAIAddress}>DAI</option>
-            </select>
-          </div>
+        <div className="mb-8">
+          <label className="block text-white text-sm font-bold mb-2">
+            Receive Currency
+          </label>
+          <select
+            name="receiveCurrency"
+            value={formData.receiveCurrency}
+            onChange={handleChange}
+            required
+            className="w-full px-4 py-3 bg-black border border-blue-600/50 rounded-lg focus:outline-none focus:border-blue-500 text-white"
+          >
+            <option value="USDC on Linea">USDC on Linea</option>
+          </select>
+        </div>
 
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg focus:outline-none"
-            >
-              List Product
-            </button>
-          </div>
-        </form>
-      </div>
-    </>
+        <div className="flex items-center justify-center">
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg focus:outline-none transition-colors duration-200 text-lg"
+          >
+            List Product
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 
