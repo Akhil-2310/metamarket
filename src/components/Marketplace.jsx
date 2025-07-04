@@ -3,7 +3,7 @@ import { useAccount } from 'wagmi';
 import { formatUnits, parseUnits } from 'viem';
 import commerceABI from '../contracts/Commerce.json';
 import { getProductImage } from '../utils/productImages';
-import { publicClient } from '../config/wagmi';
+import { publicClient, walletClient } from '../config/wagmi';
 import { useNavigate } from 'react-router-dom';
 
 const commerceContractAddress = "0x4309Eb90A37cfD0ecE450305B24a2DE68b73f312";
@@ -112,105 +112,147 @@ const Marketplace = () => {
     setFilteredProducts(filtered);
   }, [products, searchTerm, selectedCategory, sortBy]);
 
-  const handlePurchase = async (product) => {
-    if (!address) {
-      alert("Please connect your wallet first");
+  
+
+const usdcAbi = [
+  {
+    name: "approve",
+    type: "function",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+  {
+    name: "allowance",
+    type: "function",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    name: "balanceOf",
+    type: "function",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+];
+
+const handlePurchase = async (product) => {
+  if (!address) {
+    alert("Please connect your wallet first");
+    return;
+  }
+
+  if (address.toLowerCase() === product.seller.toLowerCase()) {
+    alert("You cannot buy your own product.");
+    return;
+  }
+
+  try {
+    const [canPurchase, reason] = await publicClient.readContract({
+      address: commerceContractAddress,
+      abi: commerceABI,
+      functionName: "canPurchaseProduct",
+      args: [product.id, address],
+    });
+
+    if (!canPurchase) {
+      alert(`Cannot purchase: ${reason}`);
       return;
     }
 
-    // Check if user is trying to buy their own product
-    if (address && address.toLowerCase() === product.seller.toLowerCase()) {
-      alert("You cannot buy your own product. Please use a different wallet to test purchases.");
-      return;
-    }
+    const priceInWei = parseUnits(product.price, 6);
 
-    try {
-      // Pre-check if purchase is possible
-      const [canPurchase, reason] = await publicClient.readContract({
-        address: commerceContractAddress,
-        abi: commerceABI,
-        functionName: "canPurchaseProduct",
-        args: [product.id, address]
-      });
-      
-      if (!canPurchase) {
-        alert(`Cannot purchase: ${reason}`);
-        return;
+    // Check USDC balance
+    const balance = await publicClient.readContract({
+      address: product.currency,
+      abi: usdcAbi,
+      functionName: "balanceOf",
+      args: [address],
+    });
+
+    if (balance < priceInWei) {
+      if (product.chain === 'Linea') {
+        await bridgeAndBuy({
+          fromChainId: 8453,
+          toChainId: 59144,
+          fromTokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+          toTokenAddress: product.currency,
+          amount: priceInWei.toString(),
+          address,
+        });
+      } else if (product.chain === 'Base') {
+        await bridgeAndBuy({
+          fromChainId: 59144,
+          toChainId: 8453,
+          fromTokenAddress: '0x176211869cA2b568f2A7D4EE941E073a821EE1ff',
+          toTokenAddress: product.currency,
+          amount: priceInWei.toString(),
+          address,
+        });
       }
 
-      // First, approve USDC spending
-      const usdcToken = {
+      alert("Bridge initiated. After completion, click 'Buy Now' again.");
+      return;
+    }
+
+    // Check allowance
+    const currentAllowance = await publicClient.readContract({
+      address: product.currency,
+      abi: usdcAbi,
+      functionName: "allowance",
+      args: [address, commerceContractAddress],
+    });
+
+    if (currentAllowance < priceInWei) {
+      console.log("Approving USDC spending...");
+
+      const { request } = await walletClient.writeContract({
         address: product.currency,
-        abi: [
-          "function approve(address spender, uint256 amount) external returns (bool)",
-          "function allowance(address owner, address spender) external view returns (uint256)",
-          "function balanceOf(address owner) external view returns (uint256)"
-        ]
-      };
-
-      const priceInWei = parseUnits(product.price, 6);
-      
-      // Check USDC balance
-      const balance = await publicClient.readContract({
-        ...usdcToken,
-        functionName: "balanceOf",
-        args: [address]
+        abi: usdcAbi,
+        functionName: "approve",
+        args: [commerceContractAddress, priceInWei],
+        account: address,
       });
 
-      if (balance < priceInWei) {
-        alert(`Insufficient USDC balance. You need ${product.price} USDC but have ${formatUnits(balance, 6)} USDC.`);
-        return;
-      }
+      const approvalTx = await walletClient.writeContract(request);
+      await publicClient.waitForTransactionReceipt({ hash: approvalTx });
 
-      // Check current allowance
-      const currentAllowance = await publicClient.readContract({
-        ...usdcToken,
-        functionName: "allowance",
-        args: [address, commerceContractAddress]
-      });
-
-      console.log("Current allowance:", formatUnits(currentAllowance, 6), "USDC");
-      console.log("Required amount:", product.price, "USDC");
-
-      if (currentAllowance < priceInWei) {
-        console.log("Approving USDC spending...");
-        // Note: For write operations, you would need to use walletClient and writeContract
-        // This is a simplified version - in practice you'd need to implement the approval flow
-        alert("USDC approval required. Please approve USDC spending in your wallet.");
-        return;
-      }
-
-      // Now buy the product
-      console.log("Purchasing product...");
-      // Note: For write operations, you would need to use walletClient and writeContract
-      // This is a simplified version - in practice you'd need to implement the purchase flow
-      alert("Purchase transaction initiated. Please confirm in your wallet.");
-      
-      // Refresh the products list after a delay
-      setTimeout(() => {
-        fetchProducts();
-      }, 5000);
-    } catch (error) {
-      console.error("Error purchasing product:", error);
-      
-      // Provide specific error messages based on the error
-      if (error.message.includes("Cannot buy your own product")) {
-        alert("You cannot buy your own product. Please use a different wallet to test purchases.");
-      } else if (error.message.includes("Product already purchased")) {
-        alert("This product has already been purchased by someone else.");
-      } else if (error.message.includes("Insufficient USDC allowance")) {
-        alert("USDC approval failed. Please try approving USDC spending again.");
-      } else if (error.message.includes("Insufficient USDC balance")) {
-        alert("Insufficient USDC balance. Please add more USDC to your wallet.");
-      } else if (error.message.includes("USDC transfer failed")) {
-        alert("USDC transfer failed. Please check your balance and try again.");
-      } else if (error.message.includes("revert")) {
-        alert("Transaction failed. Please check your USDC balance and approval status.");
-      } else {
-        alert("Failed to purchase product. Please check your USDC balance and try again.");
-      }
+      alert("✅ USDC approved. Now click Buy Now again to complete your purchase.");
+      return;
     }
-  };
+
+    // Purchase the product
+    const { request } = await walletClient.writeContract({
+      address: commerceContractAddress,
+      abi: commerceABI,
+      functionName: "purchaseProduct",
+      args: [product.id],
+      account: address,
+    });
+
+    const txHash = await walletClient.writeContract(request);
+    await publicClient.waitForTransactionReceipt({ hash: txHash });
+
+    alert("Purchase successful! You now own the product.");
+    fetchProducts();
+
+  } catch (error) {
+    console.error("Error purchasing product:", error);
+    alert("Transaction failed. Please check your balance, approval, or bridge status.");
+  }
+};
+
+
+
+
 
   return (
     <div className="min-h-screen bg-black py-8">
