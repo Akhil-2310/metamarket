@@ -4,6 +4,7 @@ import { formatUnits } from 'viem';
 import { publicClient } from '../config/wagmi';
 import commerceABI from '../contracts/Commerce.json';
 import { getProductImage } from '../utils/productImages';
+import { useNavigate } from 'react-router-dom';
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
 
@@ -11,6 +12,7 @@ const MyProducts = () => {
   const { address } = useAccount();
   const [myProducts, setMyProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const fetchMyProducts = async () => {
     if (!address) {
@@ -181,7 +183,7 @@ const MyProducts = () => {
             <h3 className="text-xl font-bold text-white mb-2">No Products Listed</h3>
             <p className="text-gray-300 mb-6">You haven't listed any products yet.</p>
             <button 
-              onClick={() => window.location.href = '/list-products'}
+              onClick={() => navigate('/list')}
               className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
             >
               List Your First Product

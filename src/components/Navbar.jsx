@@ -27,7 +27,7 @@ export const ConnectButton = () => {
         ) : (
           connectors.map((connector) => (
             <button 
-              key={connector.uid} 
+              key={Math.random()} // Use a unique key for each button
               onClick={() => connect({ connector })}
               className="btn btn-primary btn-sm bg-blue-600 hover:bg-blue-700 text-white border-none"
             >

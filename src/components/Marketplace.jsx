@@ -4,6 +4,7 @@ import { formatUnits, parseUnits } from 'viem';
 import commerceABI from '../contracts/Commerce.json';
 import { getProductImage } from '../utils/productImages';
 import { publicClient } from '../config/wagmi';
+import { useNavigate } from 'react-router-dom';
 
 const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
 
@@ -15,6 +16,7 @@ const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
+   const navigate = useNavigate();
 
   // Fetch products from smart contract using wagmi
   const fetchProducts = async () => {
@@ -282,7 +284,7 @@ const Marketplace = () => {
               </p>
               {products.length === 0 && (
                 <button 
-                  onClick={() => window.location.href = '/list-products'}
+                  onClick={() => navigate('/list')}
                   className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition-colors"
                 >
                   List Your First Product
