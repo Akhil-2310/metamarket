@@ -6,7 +6,7 @@ import { getProductImage } from '../utils/productImages';
 import { publicClient } from '../config/wagmi';
 import { useNavigate } from 'react-router-dom';
 
-const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
+const commerceContractAddress = "0x4309Eb90A37cfD0ecE450305B24a2DE68b73f312";
 
 const Marketplace = () => {
   const { address } = useAccount();

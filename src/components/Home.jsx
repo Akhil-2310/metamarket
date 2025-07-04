@@ -40,7 +40,7 @@ const Home = () => {
                   </svg>
                 </div>
                 <h3 className="card-title justify-center text-white">Lightning Fast</h3>
-                <p className="text-gray-300">Cross-chain transactions completed in seconds with our optimized bridge technology.</p>
+                <p className="text-gray-300">Cross-chain transactions completed in seconds, thanks to CIrcle CCTP V2.</p>
               </div>
             </div>
 

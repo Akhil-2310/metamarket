@@ -8,7 +8,7 @@ const usdc_arbitrum = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const usdc_base = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 const usdc_linea = "0x176211869cA2b568f2A7D4EE941E073a821EE1ff";
 
-const commerceContractAddress = "0x6A464b31b714ad57D7713ED3684A9441d44b473f";
+const commerceContractAddress = "0x4309Eb90A37cfD0ecE450305B24a2DE68b73f312";
 
 const ListProducts = () => {
   const { address } = useAccount();
