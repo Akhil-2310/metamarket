@@ -1,8 +1,13 @@
 import React, { useState } from "react";
-import { useAccount } from 'wagmi';
-import { publicClient, walletClient } from '../config/wagmi';
-import commerceABI from '../contracts/Commerce.json';
+import { useAccount } from "wagmi";
+import { publicClient, walletClient } from "../config/wagmi";
+import commerceABI from "../contracts/Commerce.json";
 import { useNavigate } from "react-router-dom";
+import {
+  simulateContract,
+  writeContract,
+  waitForTransactionReceipt,
+} from "viem/actions";
 
 const usdc_arbitrum = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831";
 const usdc_base = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
@@ -25,15 +30,15 @@ const ListProducts = () => {
 
   // State to handle loading and error messages
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   // Function to handle input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [name]: value,
     });
   };
 
@@ -41,11 +46,11 @@ const ListProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (!address) {
-      setError('Please connect your wallet first');
+      setError("Please connect your wallet first");
       setLoading(false);
       return;
     }
@@ -53,50 +58,62 @@ const ListProducts = () => {
     try {
       // Prepare contract call arguments
       const { name, description, category, price, currency } = formData;
-      
+
       // Convert price to wei (USDC has 6 decimals)
       const priceInWei = BigInt(parseFloat(price) * 1000000);
 
-      console.log('Listing product:', { name, description, category, price, currency, priceInWei });
-
-      // Simulate the contract call to list the product
-      const { request } = await publicClient.simulateContract({
-        address: commerceContractAddress,
-        abi: commerceABI,
-        functionName: 'listProduct',
-        args: [name, description, category, priceInWei, currency],
-        account: address
+      console.log("Listing product:", {
+        name,
+        description,
+        category,
+        price,
+        currency,
+        priceInWei,
       });
 
-      // Write to the contract (list product on-chain)
-      const hash = await walletClient.writeContract(request);
-      await publicClient.waitForTransactionReceipt({ hash });
+      // Simulate the contract call to list the product
+      // Simulate the call
+      const { request } = await simulateContract(publicClient, {
+        address: commerceContractAddress,
+        abi: commerceABI,
+        functionName: "listProduct",
+        args: [name, description, category, priceInWei, currency],
+        account: address,
+      });
 
-      setSuccess('Product listed successfully!');
-      
+      // Execute the transaction
+      const hash = await writeContract(walletClient, request);
+
+      // Wait for confirmation
+      await waitForTransactionReceipt(publicClient, { hash });
+      setSuccess("Product listed successfully!");
+
       // Navigate to marketplace after successful listing
       setTimeout(() => {
         navigate("/marketplace");
       }, 2000);
-      
     } catch (err) {
-      console.error('Error listing product:', err);
-      setError('Failed to list the product. Please try again.');
+      console.error("Error listing product:", err);
+      setError("Failed to list the product. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-  
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-black">
       <form
         onSubmit={handleSubmit}
         className="w-full max-w-lg p-8 bg-gray-900 rounded-lg shadow-2xl border border-blue-600/30 mt-[50px] mb-[50px]"
       >
-        <h2 className="text-3xl font-bold mb-8 text-white text-center">List Your Product</h2>
-        
+        <h2 className="text-3xl font-bold mb-8 text-white text-center">
+          List Your Product
+        </h2>
+
         {error && <p className="text-red-500 mb-4 text-center">{error}</p>}
-        {success && <p className="text-green-500 mb-4 text-center">{success}</p>}
+        {success && (
+          <p className="text-green-500 mb-4 text-center">{success}</p>
+        )}
 
         <div className="mb-6">
           <label className="block text-white text-sm font-bold mb-2">
@@ -185,10 +202,10 @@ const ListProducts = () => {
             type="submit"
             disabled={loading}
             className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-6 rounded-lg focus:outline-none transition-colors duration-200 text-lg ${
-              loading ? 'opacity-50 cursor-not-allowed' : ''
+              loading ? "opacity-50 cursor-not-allowed" : ""
             }`}
           >
-            {loading ? 'Listing Product...' : 'List Product'}
+            {loading ? "Listing Product..." : "List Product"}
           </button>
         </div>
       </form>
