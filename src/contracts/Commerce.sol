@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Commerce {
+contract Commerce is ReentrancyGuard{
     uint256 public productCount = 0;
 
     struct Product {
@@ -81,7 +82,7 @@ contract Commerce {
     }
 
     // Function to purchase a product
-    function purchaseProduct(uint256 _id) public {
+    function purchaseProduct(uint256 _id) public payable nonReentrant {
         Product storage _product = products[_id];
         require(_product.id > 0 && _product.id <= productCount, "Product does not exist");
         require(!_product.purchased, "Product already purchased");
