@@ -12,6 +12,39 @@ import { COMMERCE_CONTRACTS, USDC_BASE, USDC_LINEA, CHAIN_IDS } from '../constan
 
 const commerceContractAddress = "0x4309Eb90A37cfD0ecE450305B24a2DE68b73f312";
 
+const erc20Abi = [
+  // balanceOf
+  {
+    name: 'balanceOf',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [{ name: 'owner', type: 'address' }],
+    outputs: [{ type: 'uint256' }],
+  },
+  // allowance
+  {
+    name: 'allowance',
+    type: 'function',
+    stateMutability: 'view',
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' },
+    ],
+    outputs: [{ type: 'uint256' }],
+  },
+  // approve
+  {
+    name: 'approve',
+    type: 'function',
+    stateMutability: 'nonpayable',
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'amount', type: 'uint256' },
+    ],
+    outputs: [{ type: 'bool' }],
+  },
+]
+
 const Marketplace = () => {
   const { address } = useAccount();
   const [products, setProducts] = useState([]);
@@ -20,8 +53,8 @@ const Marketplace = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [sortBy, setSortBy] = useState("newest");
-  const [bridgedMap, setBridgedMap] = useState({});
-   const navigate = useNavigate();
+  const [bridged, setBridged] = useState({});
+  const navigate = useNavigate();
 
   // Fetch products from smart contract using wagmi
   const fetchProducts = async () => {
@@ -119,108 +152,162 @@ const Marketplace = () => {
 
   
 
-const erc20Abi = [
-  { name: 'allowance', type: 'function', stateMutability: 'view', inputs: [
-      { name: 'owner',  type: 'address' },
-      { name: 'spender', type: 'address' },
-    ], outputs: [{ name: '', type: 'uint256' }] },
-  { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [
-      { name: 'spender', type: 'address' },
-      { name: 'amount',  type: 'uint256' },
-    ], outputs: [{ name: '', type: 'bool' }] },
-];
+// const erc20Abi = [
+//   { name: 'allowance', type: 'function', stateMutability: 'view', inputs: [
+//       { name: 'owner',  type: 'address' },
+//       { name: 'spender', type: 'address' },
+//     ], outputs: [{ name: '', type: 'uint256' }] },
+//   { name: 'approve', type: 'function', stateMutability: 'nonpayable', inputs: [
+//       { name: 'spender', type: 'address' },
+//       { name: 'amount',  type: 'uint256' },
+//     ], outputs: [{ name: '', type: 'bool' }] },
+// ];
 
-const handlePurchase = async (product) => {
-  if (!address) {
-    return alert('Please connect your wallet first');
-  }
-  if (address.toLowerCase() === product.seller.toLowerCase()) {
-    return alert('You cannot buy your own product');
-  }
-
-  // ---- PHASE 1: Bridge if not done yet ----
-  if (!bridgedMap[product.id]) {
-    const amount = parseUnits(product.price.toString(), 6).toString();
-    const { routes } = await getRoutes({
-      fromChainId:      CHAIN_IDS.base,
-      toChainId:        CHAIN_IDS.linea,
-      fromTokenAddress: USDC_BASE,
-      toTokenAddress:   USDC_LINEA,
-      fromAmount:       amount,
-      fromAddress:      address,
-      toAddress:        address,
-      allowBridges:     ['cctp'],
-    });
-    if (!routes.length) {
-      return alert('No Circle CCTP route found');
+async function ensureBaseNetwork() {
+    const baseHex = '0x' + CHAIN_IDS.base.toString(16)
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: baseHex }],
+      })
+    } catch (switchError) {
+      // 4902 = unrecognized chain
+      if (switchError.code === 4902) {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId:           baseHex,
+            chainName:         'Base Mainnet',
+            nativeCurrency:    { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls:           ['https://mainnet.base.org'],
+            blockExplorerUrls: ['https://basescan.org'],
+          }],
+        })
+        // now switch
+        await window.ethereum.request({
+          method: 'wallet_switchEthereumChain',
+          params: [{ chainId: baseHex }],
+        })
+      } else {
+        throw switchError
+      }
     }
-    const route = routes[0];
-
-    await executeRoute(route, {
-      updateRouteHook: upd =>
-        console.log(`Bridge: ${upd.status} (${upd.progress}%)`),
-      acceptExchangeRateUpdateHook: async () => true,
-      // no switchChainHook—let user do it
-    });
-
-    // mark this product as bridged
-    setBridgedMap(m => ({ ...m, [product.id]: true }));
-    return alert(
-      '✅ Bridged! Now please switch your wallet to **Linea** and click "Buy Now" again to complete the purchase.'
-    );
   }
 
-  // ---- PHASE 2: Purchase on Linea ----
-  // (Assumes user has switched their wallet to Linea manually)
-  try {
-    // Optional: check chainId via walletClient.chain.id
-    // Now do approve + purchase exactly as you did before
-    const priceWei = parseUnits(product.price.toString(), 6);
-
-    // 1) Check & approve USDC on Linea
+  // Helper: approve + purchase on Linea
+  async function purchaseOnLinea(product, priceWei) {
+    // 1) approve if needed
     const allowance = await publicClient.readContract({
-      address:        USDC_LINEA,
-      abi:            erc20Abi,
-      functionName:   'allowance',
-      args:           [address, COMMERCE_CONTRACTS[CHAIN_IDS.linea]],
-    });
+      address:      USDC_LINEA,
+      abi:          erc20Abi,
+      functionName: 'allowance',
+      args:         [address, COMMERCE_CONTRACTS[CHAIN_IDS.linea]],
+    })
     if (BigInt(allowance) < BigInt(priceWei)) {
       const { request: approveReq } = await simulateContract(publicClient, {
-        address:       USDC_LINEA,
-        abi:           erc20Abi,
-        functionName:  'approve',
-        args:          [COMMERCE_CONTRACTS[CHAIN_IDS.linea], priceWei],
-        account:       address,
-      });
-      const hash = await walletClient.writeContract(approveReq);
-      await publicClient.waitForTransactionReceipt({ hash });
-      console.log('✅ USDC approved on Linea');
+        address:      USDC_LINEA,
+        abi:          erc20Abi,
+        functionName: 'approve',
+        args:         [COMMERCE_CONTRACTS[CHAIN_IDS.linea], priceWei],
+        account:      address,
+      })
+      const hash = await walletClient.writeContract(approveReq)
+      await publicClient.waitForTransactionReceipt({ hash })
+      console.log('✅ Approved USDC on Linea')
     }
 
-    // 2) purchaseProduct
+    // 2) purchaseProduct()
     const { request: purchaseReq } = await simulateContract(publicClient, {
-      address:       COMMERCE_CONTRACTS[CHAIN_IDS.linea],
-      abi:           commerceABI,
-      functionName:  'purchaseProduct',
-      args:          [product.id],
-      account:       address,
-    });
-    const tx = await walletClient.writeContract(purchaseReq);
-    await publicClient.waitForTransactionReceipt({ hash: tx });
+      address:      COMMERCE_CONTRACTS[CHAIN_IDS.linea],
+      abi:          commerceABI,
+      functionName: 'purchaseProduct',
+      args:         [product.id],
+      account:      address,
+    })
+    const tx = await walletClient.writeContract(purchaseReq)
+    await publicClient.waitForTransactionReceipt({ hash: tx })
 
-    alert('🎉 Purchase complete!');
-    // optionally reset bridged state or refresh
-    setBridgedMap(m => {
-      const copy = { ...m };
-      delete copy[product.id];
-      return copy;
-    });
-    fetchProducts();
-  } catch (err) {
-    console.error('Purchase error:', err);
-    alert('Purchase failed. Make sure you are on Linea and have approved USDC.');
+    alert('🎉 Purchase complete!')
+    // clear bridged flag for this product
+    setBridged(b => { const c = { ...b }; delete c[product.id]; return c })
   }
-};
+
+  async function handlePurchase(product) {
+    if (!address) {
+      alert('Please connect your wallet first')
+      return
+    }
+    if (address.toLowerCase() === product.seller.toLowerCase()) {
+      alert('You cannot buy your own product')
+      return
+    }
+
+    // compute price in USDC's 6 decimals
+    const priceWei = parseUnits(product.price.toString(), 6)
+
+    // 1️⃣ Check Linea balance
+    const lineaBal = await publicClient.readContract({
+      address:      USDC_LINEA,
+      abi:          erc20Abi,
+      functionName: 'balanceOf',
+      args:         [address],
+    })
+    if (BigInt(lineaBal) >= BigInt(priceWei)) {
+      // already have enough → skip bridge
+      await purchaseOnLinea(product, priceWei)
+      return
+    }
+
+    // 2️⃣ Perform bridge once per product
+    if (!bridged[product.id]) {
+      // ensure on Base
+      try {
+        await ensureBaseNetwork()
+      } catch (err) {
+        console.error(err)
+        alert('Failed to switch to Base. Make sure your wallet supports Base.')
+        return
+      }
+
+      // fetch CCTP v2 route
+      const { routes } = await getRoutes({
+        fromChainId:      CHAIN_IDS.base,
+        toChainId:        CHAIN_IDS.linea,
+        fromTokenAddress: USDC_BASE,
+        toTokenAddress:   USDC_LINEA,
+        fromAmount:       priceWei.toString(),
+        fromAddress:      address,
+        toAddress:        address,
+        allowBridges:     ['circle'],
+      })
+      if (!routes.length) {
+        alert('No Circle CCTP route found')
+        return
+      }
+
+      // execute bridge; auto‐switch to Linea via raw RPC
+      await executeRoute(routes[0], {
+        updateRouteHook: upd =>
+          console.log(`Bridge: ${upd.status} (${upd.progress}%)`),
+        acceptExchangeRateUpdateHook: async () => true,
+        switchChainHook: async (chainId) => {
+          // prompt wallet to switch to Linea
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x' + chainId.toString(16) }],
+          })
+          return walletClient
+        },
+      })
+
+      setBridged(b => ({ ...b, [product.id]: true }))
+      alert('✅ Bridged to Linea! Please click “Buy Now” again to finish the purchase.')
+      return
+    }
+
+    // 3️⃣ After bridge, now purchase
+    await purchaseOnLinea(product, priceWei)
+  }
 
 
 
@@ -353,7 +440,7 @@ const handlePurchase = async (product) => {
                           onClick={() => handlePurchase(product)}
                           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
                         >
-                          { bridgedMap[product.id] ? 'Complete Purchase (Linea)' : 'Bridge & Prepare' }
+                          { bridged[product.id] ? 'Complete Purchase (Linea)' : 'Bridge & Prepare' }
                         </button>
                       </div>
                     </div>
