@@ -115,7 +115,7 @@ const Home = () => {
       {/* CTA Section */}
       <div className="py-20 bg-gradient-to-r from-blue-600/10 to-blue-800/10">
         <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-4xl font-bold mb-6 text-white">Ready to Start Trading?</h2>
+          <h2 className="text-4xl font-bold mb-6 text-white">Ready to Explore?</h2>
           <p className="text-xl mb-8 text-gray-300">
             Join thousands of users already trading across multiple blockchains. 
             Create your first listing in minutes!
