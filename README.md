@@ -1,15 +1,8 @@
 ﻿## MetaMarket
 
-## Demo Link
-
-[Live Demo](https://social-app-six-omega.vercel.app/)
-
-[Demo](https://www.loom.com/share/c4d65b88f96a465486f50e2392d1e0d3)
-
-[Youtube Link](https://youtu.be/Vrtf9smwGjE)
 
 ## What is it all about?
-Web3 is a newer concept but is very useful. Though, the starting point for the same is pretty tough and therefore we need to change this. People are afraid to start using web3 in day to day life but we as an ecosystem, need to change this narrative and bring more and more people to web3 space. 
+Web3 and crypto is very useful. Though, the starting point for the same is pretty tough and therefore we need to change this. People are afraid to start using web3 in day to day life but we as an ecosystem, need to change this narrative and bring more and more people to web3 space. 
 
 - How can we do it?
 
@@ -17,7 +10,7 @@ This can be done by bringing the most basic things like grocery, food, clothing 
 
 - How is the project made?
 
-All the buying and listing of products is controlled by the smart contract. The interface is built using vite where users can list their products and it will appear on the marketplace. The buyers who want to buy the products can buy the same within seconds from the marketplace. The contract is deployed on Linea Sepolia. [Contract address](https://sepolia.lineascan.build/address/0x6a464b31b714ad57d7713ed3684a9441d44b473f)
+All the buying and listing of products is controlled by the smart contract. The interface is built using vite where users can list their products and it will appear on the marketplace. The buyers who want to buy the products can buy the same within seconds from the marketplace. The contract is deployed on Linea Mainnet. [Contract address](https://lineascan.build/address/0x4309eb90a37cfd0ece450305b24a2de68b73f312)
 
 - Future Scope
 
