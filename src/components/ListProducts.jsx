@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useAccount } from "wagmi";
 import { publicClient, walletClient } from "../config/wagmi";
-import commerceABI from "../contracts/Commerce.json";
+import commerceABI from "../contracts/Commerce";
 import { useNavigate } from "react-router-dom";
 import {
   simulateContract,

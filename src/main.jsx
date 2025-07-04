@@ -7,17 +7,17 @@ import Footer from './components/Footer.jsx'
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { http, WagmiProvider, createConfig } from "wagmi";
-import { mainnet, linea, lineaSepolia } from "wagmi/chains";
+import {  linea, base } from "wagmi/chains";
 import { metaMask } from "wagmi/connectors";
 import { CustomWagmiProvider } from './providers/CustomWagmiProvider.jsx'
 
 const config = createConfig({
   ssr: true, // Make sure to enable this for server-side rendering (SSR) applications.
-  chains: [ linea],
-  connectors: [metaMask()],
+  chains: [ base, linea],
+  connectors: [metaMask({ chains: [base, linea] })],
   transports: {
-    [linea.id]: http(),
- 
+   [base.id]:  http('https://mainnet.base.org'),
+   [linea.id]: http('https://rpc.linea.build'),
   },
 });
 
