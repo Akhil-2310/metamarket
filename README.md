@@ -38,6 +38,6 @@ When people will start buying day to day things and essentials onchain is where 
 
 All the buying and listing of products is controlled by the smart contract. The interface is built using vite where users can list their products and it will appear on the marketplace. The buyers who want to buy the products can buy the same within seconds from the marketplace. The contract is deployed on Linea Mainnet and Base Mainnet.
 
-- Future Scope
+### Future Scope
 
 Collaborating with delivery services and partners to make physical products reach the people's homes.
