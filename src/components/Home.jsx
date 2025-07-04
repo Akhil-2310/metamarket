@@ -124,7 +124,7 @@ const Home = () => {
             <Link to="/marketplace" className="btn btn-primary btn-lg bg-blue-600 hover:bg-blue-700 text-white border-none">
               Browse Products
             </Link>
-            <Link to="/create-listing" className="btn btn-outline btn-lg text-white border-blue-600 hover:bg-blue-600">
+            <Link to="/list" className="btn btn-outline btn-lg text-white border-blue-600 hover:bg-blue-600">
               Create Listing
             </Link>
           </div>
